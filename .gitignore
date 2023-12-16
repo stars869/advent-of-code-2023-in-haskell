@@ -1,0 +1,7 @@
+*.py
+
+*.hi
+*.o
+
+part-1
+part-2
