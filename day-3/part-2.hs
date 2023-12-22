@@ -18,17 +18,17 @@ getGearIDs mat = zipWith (zipWith (\c i -> if c == '*' then i else 0)) mat index
 kernalGetGears :: [[(Char, GearID)]] -> [GearID]
 kernalGetGears = filter (> 0) . map snd . concat
 
-calculateGearRatioSum :: [(GearID, [Int])] -> Int
+calculateGearRatioSum :: [(GearID, [PartNum])] -> Int
 calculateGearRatioSum gearIDWithNums = sum $ map (\e -> (head $ snd e) * (last $ snd e)) gearIDWithTwoNums
     where gearIDWithTwoNums = filter (\e -> (length $ snd e) == 2) gearIDWithNums
 
-getGearIDWithNums :: [(Int, [GearID])] -> [(GearID, [Int])]
+getGearIDWithNums :: [(PartNum, [GearID])] -> [(GearID, [PartNum])]
 getGearIDWithNums list = map (\e -> (fst $ head e, map snd e)) groupedGears
     where
-        flattenedList = concat $ map (\e -> map (\g -> (g, fst e)) $ snd e) list
+        flattenedList = concatMap (\e -> map (\g -> (g, fst e)) $ snd e) list
         groupedGears = groupBy (\x y -> fst x == fst y) $ sortBy (\x y -> compare (fst x) (fst y)) flattenedList
 
-readWithGearID :: [(Char, [GearID])] -> (Int, [GearID])
+readWithGearID :: [(Char, [GearID])] -> (PartNum, [GearID])
 readWithGearID [] = (0, [])
 readWithGearID list = if length gearIDs > 0
     then (read (map fst list), gearIDs)
@@ -36,7 +36,7 @@ readWithGearID list = if length gearIDs > 0
     where
         gearIDs = map head $ groupBy (==) $ sort $ concatMap snd list
 
-readNums :: [(Char, [GearID])] -> [(Int, [GearID])]
+readNums :: [(Char, [GearID])] -> [(PartNum, [GearID])]
 readNums list = map readWithGearID $ splitOn (not . isDigit . fst) list
 
 solve :: [[Char]] -> Int
