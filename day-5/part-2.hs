@@ -1,16 +1,12 @@
 import System.IO
-import Debug.Trace (trace)
-import MyHelpers (splitOn)
-import qualified MyRange
 import Data.Maybe (catMaybes)
+import Debug.Trace (trace)
+import MyHelpers (splitOn, splitEveryTwo)
+import qualified MyRange
+
 
 type Range = (Int, Int)
 type RangeShift = (Range, Int)
-
-splitEveryTwo :: [a] -> [(a, a)]
-splitEveryTwo [] = []
-splitEveryTwo (x:y:rest) = (x, y) : splitEveryTwo rest
-splitEveryTwo _ = error "Incomplete pair"
 
 readSeedRanges :: String -> [Range]
 readSeedRanges lineStr = map (\p -> (fst p, fst p + snd p - 1)) $ splitEveryTwo nums
@@ -30,7 +26,6 @@ readSingleShift lineStr = (sourceRange, shiftLength)
 readWholePermutation :: [String] -> [RangeShift]
 readWholePermutation linesStr = map readSingleShift $ tail linesStr
 
--- TODO: to be implemented
 applyPermute :: [RangeShift] -> Range -> [Range]
 applyPermute rangeShiftList inputRange = nonIntersections ++ shiftedIntesections
     where
@@ -48,9 +43,8 @@ applyPermteToRangeList permuteList = concatMap (applyPermute permuteList)
 solve :: [String] -> Int
 solve linesStr = minimum $ map fst locationRanges
     where
-        locationRanges = foldl (\r p -> p r) seedRanges permuteList :: [Range]
+        locationRanges = foldl (\r p -> applyPermteToRangeList p r) seedRanges permutationList :: [Range]
         seedRanges = readSeedRanges $ head $ head strChunks :: [Range]
-        permuteList = map applyPermteToRangeList permutationList :: [[Range] -> [Range]]
         permutationList = map readWholePermutation $ tail strChunks :: [[RangeShift]]
         strChunks = splitOn (=="") linesStr :: [[String]]
 
