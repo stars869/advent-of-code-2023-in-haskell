@@ -9,7 +9,7 @@ parse = map (toPair . words) . lines
         toPair [hand, bid] = (hand, read @Int bid)
 
 compareHands :: String -> String -> Ordering
-compareHands hand1 hand2 = if handsTypeOrder == EQ then cardsOrder else handsTypeOrder
+compareHands hand1 hand2 = mappend handsTypeOrder cardsOrder 
     where
         cardOrdMap = fromList $ zip (reverse "AKQJT98765432") [0..] :: Map Char Int
         handTypeOrderMap = sum . map ((^ 10) . length) . group . sort . map (cardOrdMap !) :: String -> Int
