@@ -11,7 +11,7 @@ parse = map (toPair . words) . lines
 compareHands :: String -> String -> Ordering
 compareHands hand1 hand2 = mappend handsTypeOrder cardsOrder
     where
-        cardOrdMap = fromList $ zip (reverse "AKQT98765432J") [0..] :: Map Char Int
+        cardOrdMap = fromList $ zip (reverse "AKQT98765432J") [0..]
         countJ = length . filter (=='J')
         groupCards = (\l -> l++[0]) . map length . group . sort . map (cardOrdMap !) . filter (/='J')
         handTypeOrderMap hand = sum $ map (^10) $ (\(x:xs) -> (x + countJ hand):xs) $ reverse $ sort $ groupCards hand 
@@ -19,7 +19,7 @@ compareHands hand1 hand2 = mappend handsTypeOrder cardsOrder
         cardsOrder = on compare (map (cardOrdMap !)) hand1 hand2
 
 solve :: [(String, Int)] -> Int
-solve  = sum . map (\(r, (h, b)) -> r * b) . zip [1..] . sortHands 
+solve  = sum . zipWith (*) [1..] . map snd . sortHands 
     where
         sortHands = sortBy (on compareHands fst)
 
