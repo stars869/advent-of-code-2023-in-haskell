@@ -1,14 +1,15 @@
-import System.IO
 import Data.Char (isDigit, digitToInt)
+import Control.Applicative (liftA2)
 
 
 solveCase :: String -> Int
-solveCase str = head nums * 10 + last nums
-    where nums = map digitToInt $ filter isDigit str
+solveCase = calcValue . getNums
+    where 
+        getNums = map digitToInt . filter isDigit
+        calcValue = liftA2 (+) ((*10) . head) last 
+
+solve :: [String] -> Int 
+solve = sum . map solveCase
 
 main :: IO ()
-main = do
-    input <-  readFile "./input"
-    let result = sum $ map solveCase $ lines input
-    print result
-    
+main = readFile "./input" >>= print . solve . lines
