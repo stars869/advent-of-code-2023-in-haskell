@@ -15,8 +15,8 @@ parse = map parseLine . lines
 solveCase :: (Int, [[(String, Int)]]) -> Int
 solveCase (_, reveals) = power
     where
-        getCubeMax color = maximum . map snd . filter ((==color) . fst) . concat
-        power = product $ map (`getCubeMax` reveals) ["red", "green", "blue"]
+        getCubeMax color = maximum $ map snd $ filter ((==color) . fst) $ concat reveals
+        power = product $ map getCubeMax ["red", "green", "blue"]
 
 solve :: [(Int, [[(String, Int)]])] -> Int
 solve = sum . map solveCase

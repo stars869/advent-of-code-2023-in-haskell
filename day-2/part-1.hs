@@ -15,8 +15,8 @@ parse = map parseLine . lines
 solveCase :: (Int, [[(String, Int)]]) -> Int
 solveCase (gameID, reveals) = gameID * fromEnum isPossible
     where
-        getCubeMax color = maximum . map snd . filter ((==color) . fst) . concat
-        isPossible = all (\(color, maxVal) -> getCubeMax color reveals <= maxVal) [("red", 12), ("green", 13), ("blue", 14)]
+        getCubeMax color = maximum $ map snd $ filter ((==color) . fst) $ concat reveals
+        isPossible = all (\(color, maxVal) -> getCubeMax color <= maxVal) [("red", 12), ("green", 13), ("blue", 14)]
 
 solve :: [(Int, [[(String, Int)]])] -> Int
 solve = sum . map solveCase
