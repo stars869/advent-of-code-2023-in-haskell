@@ -1,56 +1,30 @@
-import System.IO
-import MyHelpers (padding2D, conv2D, splitOn)
-import Data.List (groupBy, sortBy, sort)
+import qualified Data.Set as Set
 import Data.Char (isDigit)
-import Debug.Trace (trace)
+import Data.List (sortBy, groupBy)
+import Data.Function (on)
+import MyHelpers (splitOn)
 
 
-type GearID = Int
-type PartNum = Int
+type Coord = (Int, Int)
 
-getGearIDs :: [[Char]] -> [[GearID]]
-getGearIDs mat = zipWith (zipWith (\c i -> if c == '*' then i else 0)) mat indexMat
+neighbors :: Coord -> [Coord]
+neighbors (x, y) = [(x + dx, y + dy) | dx <- [-1, 0, 1], dy <- [-1, 0, 1]]
+
+parse :: String -> [[(Coord, Char)]]
+parse str = zipWith zip cordMat charMat
     where
-        indexMat = map (\ri -> map (\ci -> ri * nCols + ci) [1..nCols]) [1..nRows] :: [[Int]]
-        nRows = length mat
-        nCols = length $ head mat
+        charMat = lines str
+        (nRows, nCols) = (length charMat, length $ head charMat)
+        cordMat = map (\ri -> map (ri,) [1..nCols]) [1..nRows]
 
-kernalGetGears :: [[(Char, GearID)]] -> [GearID]
-kernalGetGears = filter (> 0) . map snd . concat
-
-calculateGearRatioSum :: [(GearID, [PartNum])] -> Int
-calculateGearRatioSum gearIDWithNums = sum $ map (\e -> (head $ snd e) * (last $ snd e)) gearIDWithTwoNums
-    where gearIDWithTwoNums = filter (\e -> (length $ snd e) == 2) gearIDWithNums
-
-getGearIDWithNums :: [(PartNum, [GearID])] -> [(GearID, [PartNum])]
-getGearIDWithNums list = map (\e -> (fst $ head e, map snd e)) groupedGears
+solve :: [[(Coord, Char)]] -> Int
+solve schematic = sum $ map (product . map snd) gearWith2Nums
     where
-        flattenedList = concatMap (\e -> map (\g -> (g, fst e)) $ snd e) list
-        groupedGears = groupBy (\x y -> fst x == fst y) $ sortBy (\x y -> compare (fst x) (fst y)) flattenedList
-
-readWithGearID :: [(Char, [GearID])] -> (PartNum, [GearID])
-readWithGearID [] = (0, [])
-readWithGearID list = if length gearIDs > 0
-    then (read (map fst list), gearIDs)
-    else (0, [])
-    where
-        gearIDs = map head $ groupBy (==) $ sort $ concatMap snd list
-
-readNums :: [(Char, [GearID])] -> [(PartNum, [GearID])]
-readNums list = map readWithGearID $ splitOn (not . isDigit . fst) list
-
-solve :: [[Char]] -> Int
-solve mat = calculateGearRatioSum gearIDWithNums
-    where
-        gearIDWithNums = getGearIDWithNums numWithGearIDs
-        numWithGearIDs = concatMap readNums charWithGearIDs
-        charWithGearIDs = zipWith zip mat allGearIDsInACell
-        allGearIDsInACell = conv2D 3 kernalGetGears (padding2D 1 ('.', 0) charWithGearID)
-        charWithGearID = zipWith zip mat gearIDs
-        gearIDs = getGearIDs mat
+        gearCoords = Set.fromList $ map fst $ filter ((=='*') . snd) $ concat schematic
+        nums = map (\(coords, str) -> (coords, read @Int str)) $ map unzip $ concatMap (splitOn (not. isDigit . snd)) schematic
+        numsWithGears = map (\(coords, num) -> (filter (`Set.member` gearCoords) $ Set.toList $ Set.fromList $ concatMap neighbors coords, num)) nums
+        gearWithNums = groupBy (on (==) fst) $ sortBy (on compare fst) $ concatMap (\(coords, num) -> map (,num) coords) numsWithGears
+        gearWith2Nums = filter ((==2) . length) gearWithNums 
 
 main :: IO ()
-main = do
-    input <-  readFile "./input"
-    let result = solve $ lines input
-    print result
+main = readFile "./input" >>= print . solve . parse

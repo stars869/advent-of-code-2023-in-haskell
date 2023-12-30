@@ -1,31 +1,27 @@
-import System.IO
-import Data.Char (isDigit, digitToInt, ord)
-import MyHelpers (padding2D, conv2D, splitOn)
+import qualified Data.Set as Set
+import Data.Char (isDigit)
+import MyHelpers (splitOn)
 
 
-readWithMark :: [(Char, Bool)] -> Int
-readWithMark [] = 0
-readWithMark list = if any snd list
-    then read (map fst list)
-    else 0
+type Coord = (Int, Int)
 
-readNums :: [(Char, Bool)] -> [Int]
-readNums list = map readWithMark $ splitOn (not . isDigit . fst) list
+neighbors :: Coord -> [Coord]
+neighbors (x, y) = [(x + dx, y + dy) | dx <- [-1, 0, 1], dy <- [-1, 0, 1]]
 
-isSymbol :: Char -> Bool
-isSymbol c = ord c < ord '.' || ord c > ord '9' || ord c == ord '/'
-
-kernalHasSymbol :: [[Char]] -> Bool
-kernalHasSymbol = any (any isSymbol)
-
-solve :: [[Char]] -> Int
-solve mat = sum $ map (sum . readNums) charWithMarks
+parse :: String -> [[(Coord, Char)]]
+parse str = zipWith zip cordMat charMat
     where
-        marks = conv2D 3 kernalHasSymbol (padding2D 1 '.' mat)
-        charWithMarks = zipWith zip mat marks
+        charMat = lines str
+        (nRows, nCols) = (length charMat, length $ head charMat)
+        cordMat = map (\ri -> map (ri,) [1..nCols]) [1..nRows]
+
+solve :: [[(Coord, Char)]] -> Int
+solve schematic = sum $ map (read @Int . snd) partNums
+    where
+        isSymbol c = not (isDigit c) && (c /= '.')
+        partCoords = Set.fromList $ map fst $ filter (isSymbol . snd) $ concat schematic
+        nums = map unzip $ concatMap (splitOn (not. isDigit . snd)) schematic
+        partNums = filter (\(cords, _) -> any (any (`Set.member` partCoords) . neighbors) cords) nums
 
 main :: IO ()
-main = do
-    input <-  readFile "./input"
-    let result = solve $ lines input
-    print result
+main = readFile "./input" >>= print . solve . parse
