@@ -1,21 +1,18 @@
-import System.IO
+import Control.Arrow ((&&&))
 import MyHelpers (splitOn)
-import Debug.Trace (trace)
 
-calcAllDistancesByTime :: Int -> [Int]
-calcAllDistancesByTime t = map (\x -> x * (t - x)) [0..t]
 
-numberOfWaysToBeat :: (Int, Int) -> Int
-numberOfWaysToBeat (time, distance) = length $ filter (> distance) (calcAllDistancesByTime time)
+parse :: String -> (Int, Int)
+parse = (parseLine . head &&& parseLine . last) . lines
+    where parseLine = read . filter (/=' ') . last . splitOn (==':')
 
-solve :: [String] -> Int
-solve input = numberOfWaysToBeat (time, distance)  
+solve :: (Int, Int) -> Int
+solve (t, d) = floor r1 - ceiling r2 + 1
     where
-        time = read $ filter (/=' ') $ last $ splitOn (==':') $ head input :: Int
-        distance = read $ filter (/=' ') $ last $ splitOn (==':') $ last input :: Int
+        (t', d') = (fromIntegral t, fromIntegral d)
+        sqrtDisc = sqrt (t' ^ 2 - (4 * d'))
+        (r1, r2) = ((t' + sqrtDisc) / 2, (t' - sqrtDisc) / 2)
 
 main :: IO ()
 main = do
-    input <- readFile "./input"
-    let result = solve $ lines input
-    print result
+    readFile "./input" >>= print . solve . parse
