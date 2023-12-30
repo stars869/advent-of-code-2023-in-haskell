@@ -1,26 +1,22 @@
-import qualified Data.Set as Set
+import Control.Arrow ((&&&))
+import Data.List (intersect)
+import Data.Array (listArray, elems, (!))
 import MyHelpers (splitOn)
-import Distribution.Utils.String (trim)
-import Debug.Trace (trace)
 
-countWinningCards :: String -> Int
-countWinningCards card = length $ filter (\n -> Set.member n winingNums) myNums
-    where 
-        winingNums = Set.fromList $ map read $ splitOn (==' ') $ trim $ last $ splitOn (==':') $ head $ splitOn (=='|') card 
-        myNums = map read $ splitOn (==' ') $ trim $ last $ splitOn (=='|') card :: [Int]
 
-calcAccWinningNums :: [Int] -> [Int] -> [Int]
-calcAccWinningNums [] _ = []
-calcAccWinningNums revWinningNums accWinningNums = newAcc: (calcAccWinningNums (tail revWinningNums) (newAcc:accWinningNums)) 
-    where 
-        newAcc = 1 + (sum $ take (head revWinningNums) accWinningNums) :: Int 
+parse :: String -> [([Int], [Int])]
+parse = map parseLine . lines
+    where
+        parseLine = (toNums . head &&& toNums . last) . splitOn (=='|') . last . splitOn (==':')
+        toNums = map (read @Int) . words
 
-solve :: [String] -> Int 
-solve cases = sum $ calcAccWinningNums (reverse winningNums) []
-    where winningNums = map countWinningCards cases
+solve :: [([Int], [Int])] -> Int
+solve cards = sum $ elems memo
+    where
+        nMatchesList = map (length . uncurry intersect) cards
+        nMatchesArray = listArray (1, length nMatchesList) nMatchesList
+        memo = listArray (1, length nMatchesList) [winningCopies i | i <- [1..(length nMatchesList)]]
+        winningCopies i = 1 + sum (map (\di -> memo ! (i + di)) [1..(nMatchesArray ! i)])
 
 main :: IO ()
-main = do 
-    input <- readFile "./input"
-    let result = solve $ lines input 
-    print result 
+main = readFile "./input" >>= print . solve . parse

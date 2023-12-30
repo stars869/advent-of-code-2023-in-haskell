@@ -1,18 +1,20 @@
-import qualified Data.Set as Set
+import Control.Arrow ((&&&))
+import Data.List (intersect)
 import MyHelpers (splitOn)
-import Distribution.Utils.String (trim)
-import Debug.Trace (trace)
 
-solveCase :: String -> Int
-solveCase card = if power == 0 then 0 else 2 ^ (power - 1)
+
+parse :: String -> [([Int], [Int])]
+parse = map parseLine . lines
     where 
-        power = length $ filter (\n -> Set.member n winingNums) myNums
-        winingNums = Set.fromList $ map read $ splitOn (==' ') $ trim $ last $ splitOn (==':') $ head $ splitOn (=='|') card 
-        myNums = map read $ splitOn (==' ') $ trim $ last $ splitOn (=='|') card :: [Int]
+        parseLine = (toNums . head &&& toNums . last) . splitOn (=='|') . last . splitOn (==':')
+        toNums = map (read @Int) . words
 
+solveCase :: ([Int], [Int]) -> Int 
+solveCase (winningNums, myNums) = if power == 0 then 0 else 2 ^ (power - 1)
+    where power = length $ intersect myNums winningNums
+
+solve :: [([Int], [Int])] -> Int 
+solve = sum . map solveCase
 
 main :: IO ()
-main = do 
-    input <- readFile "./input"
-    let result = sum $ map solveCase $ lines input 
-    print result 
+main = readFile "./input" >>= print . solve . parse
