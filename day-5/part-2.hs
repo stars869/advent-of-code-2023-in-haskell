@@ -1,55 +1,39 @@
-import System.IO
-import Data.Maybe (catMaybes)
-import Debug.Trace (trace)
-import MyHelpers (splitOn, splitEveryTwo)
-import qualified MyRange
+import Control.Arrow ((&&&))
+import Control.Applicative (liftA2)
+import Data.Either (rights, lefts)
+import MyHelpers (splitOn, takeEveryTwo)
 
 
 type Range = (Int, Int)
-type RangeShift = (Range, Int)
+type RangeWithMark = Either Range Range
 
-readSeedRanges :: String -> [Range]
-readSeedRanges lineStr = map (\p -> (fst p, fst p + snd p - 1)) $ splitEveryTwo nums
+parse :: String -> ([Range], [[(Int, Int, Int)]])
+parse = (parseSeeds &&& parseMappings) . splitOn (=="") . lines
     where
-        nums = map read $ tail $ splitOn (==' ') lineStr
+        parseSeeds = map toRange . takeEveryTwo . map read . tail . words . head . head
+        toRange (s, l) = (s, s+l-1)
+        parseMappings = map parseMapping . tail
+        parseMapping = map (toTuple . map read . words) . tail
+        toTuple [n1, n2, n3] = (n1, n2, n3)
 
-readSingleShift :: String -> RangeShift
-readSingleShift lineStr = (sourceRange, shiftLength)
-    where
-        sourceRange = (sourceStart, sourceStart + rangeLength - 1)
-        shiftLength = destStart - sourceStart
-        destStart = nums !! 0
-        sourceStart = nums !! 1
-        rangeLength = nums !! 2
-        nums = map read $ splitOn (==' ') lineStr :: [Int]
+mapRangesPartial :: [RangeWithMark] -> (Int, Int, Int) -> [RangeWithMark] 
+mapRangesPartial ranges (dest, start, len) = concatMap applyShift ranges
+    where 
+        (end, shift) = (start + len - 1, dest - start)
+        applyShift (Right range) = [Right range] 
+        applyShift (Left (l, r)) 
+            | r < start = [Left (l, r)]
+            | l > end = [Left (l, r)]
+            | l >= start && r <= end = [Right (l+shift, r+shift)]
+            | l < start && r >= start && r <= end = [Left (l, start-1), Right (start+shift, r+shift)]
+            | l >= start && l <= end && r > end = [Right (l+shift, end+shift), Left (end+1, r)]
+            | l < start && r > end = [Left (l, start-1), Right (start+shift, end+shift), Left (end+1, r)]
 
-readWholePermutation :: [String] -> [RangeShift]
-readWholePermutation linesStr = map readSingleShift $ tail linesStr
+mapRanges :: [Range] -> [(Int, Int, Int)] -> [Range]
+mapRanges ranges mapping = liftA2 (++) lefts rights $ foldl mapRangesPartial (map Left ranges) mapping 
 
-applyPermute :: [RangeShift] -> Range -> [Range]
-applyPermute rangeShiftList inputRange = nonIntersections ++ shiftedIntesections
-    where
-        nonIntersections = MyRange.substractDomain [inputRange] (map fst rangeShiftList) :: [Range]
-        shiftedIntesections = catMaybes $ map (\rs -> applyRangeShiftOnIntesection rs inputRange) rangeShiftList
-        applyRangeShiftOnIntesection (sourceRange, shiftLength) range = case intersection of 
-            Nothing -> Nothing 
-            Just value -> Just $ MyRange.shift shiftLength value  
-            where intersection = MyRange.intersect sourceRange inputRange
-
-
-applyPermteToRangeList :: [RangeShift] -> [Range] -> [Range]
-applyPermteToRangeList permuteList = concatMap (applyPermute permuteList) 
-
-solve :: [String] -> Int
-solve linesStr = minimum $ map fst locationRanges
-    where
-        locationRanges = foldl (\r p -> applyPermteToRangeList p r) seedRanges permutationList :: [Range]
-        seedRanges = readSeedRanges $ head $ head strChunks :: [Range]
-        permutationList = map readWholePermutation $ tail strChunks :: [[RangeShift]]
-        strChunks = splitOn (=="") linesStr :: [[String]]
+solve :: ([Range], [[(Int, Int, Int)]]) -> Int
+solve (seedRanges, mappings) = minimum $ map fst $ foldl mapRanges seedRanges mappings 
 
 main :: IO ()
-main = do
-    input <- readFile "./input"
-    let result = solve $ lines input
-    print result
+main = readFile "./input" >>= print . solve . parse

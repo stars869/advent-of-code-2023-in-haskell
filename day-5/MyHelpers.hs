@@ -1,7 +1,7 @@
 module MyHelpers
 (
     splitOn,
-    splitEveryTwo
+    takeEveryTwo
 ) where
 
 splitOn     :: (a -> Bool) -> [a] -> [[a]]
@@ -11,7 +11,7 @@ splitOn p s =  case dropWhile p s of
                             where (w, s'') = break p s'
 
 
-splitEveryTwo :: [a] -> [(a, a)]
-splitEveryTwo [] = []
-splitEveryTwo (x:y:rest) = (x, y) : splitEveryTwo rest
-splitEveryTwo _ = error "Incomplete pair"
+takeEveryTwo :: [a] -> [(a, a)]
+takeEveryTwo [] = []
+takeEveryTwo [_] = []
+takeEveryTwo (x1:x2:xs) = (x1, x2) : takeEveryTwo xs
